@@ -124,14 +124,14 @@ void MyApp::Tick( float deltaTime )
 	for (int i = s - 1; i >= 0; i--) sand[i]->Remove();
 	s = (int)flagPool.size();
 	for (int i = s - 1; i >= 0; i--) flagPool[i]->Remove();
-	s = (int)bulletPool.size();
-	for (int i = s - 1; i >= 0; i--) bulletPool[i]->Remove();
-	s = (int)tankPool.size();
-	for (int i = s - 1; i >= 0; i--) tankPool[i]->Remove();
 	s = (int)particleExpPool.size();
 	for (int i = s - 1; i >= 0; i--) particleExpPool[i]->Remove();
+	s = (int)tankPool.size();
+	for (int i = s - 1; i >= 0; i--) tankPool[i]->Remove();
 	s = (int)spriteExpPool.size();
 	for (int i = s - 1; i >= 0; i--) spriteExpPool[i]->Remove();
+	s = (int)bulletPool.size();
+	for (int i = s - 1; i >= 0; i--) bulletPool[i]->Remove();
 
 	// individual ticks
 	// sand
@@ -148,6 +148,7 @@ void MyApp::Tick( float deltaTime )
 			if (lastBullet != toDelete) bulletPool[i] = lastBullet;
 			delete toDelete;
 			i--;
+			s = (int)bulletPool.size();
 		}
 	}
 	// sprite explosions
@@ -161,6 +162,7 @@ void MyApp::Tick( float deltaTime )
 			if (lastSpriteExplosion != toDelete) spriteExpPool[i] = lastSpriteExplosion;
 			delete toDelete;
 			i--;
+			s = (int)spriteExpPool.size();
 		}
 	}
 	// tanks
@@ -174,6 +176,7 @@ void MyApp::Tick( float deltaTime )
 			if (lastTank != toDelete) tankPool[i] = lastTank;
 			delete toDelete;
 			i--;
+			s = (int)tankPool.size();
 		}
 	}
 	// particle explosions
@@ -187,6 +190,7 @@ void MyApp::Tick( float deltaTime )
 			if (lastParticleExplosion != toDelete) particleExpPool[i] = lastParticleExplosion;
 			delete toDelete;
 			i--;
+			s = (int)particleExpPool.size();
 		}
 	}
 	// flags
