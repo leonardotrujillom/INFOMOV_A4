@@ -122,6 +122,8 @@ void MyApp::Tick( float deltaTime )
 	pointer->Remove();
 	int s = (int)sand.size();
 	for (int i = s - 1; i >= 0; i--) sand[i]->Remove();
+	s = (int)flagPool.size();
+	for (int i = s - 1; i >= 0; i--) flagPool[i]->Remove();
 	s = (int)bulletPool.size();
 	for (int i = s - 1; i >= 0; i--) bulletPool[i]->Remove();
 	s = (int)tankPool.size();
@@ -130,8 +132,6 @@ void MyApp::Tick( float deltaTime )
 	for (int i = s - 1; i >= 0; i--) particleExpPool[i]->Remove();
 	s = (int)spriteExpPool.size();
 	for (int i = s - 1; i >= 0; i--) spriteExpPool[i]->Remove();
-	s = (int)flagPool.size();
-	for (int i = s - 1; i >= 0; i--) flagPool[i]->Remove();
 
 	// individual ticks
 	// sand
@@ -197,9 +197,6 @@ void MyApp::Tick( float deltaTime )
 	coolDown++;
 
 	// indivual draws
-	// flags
-	s = (int)flagPool.size();
-	for (int i = 0; i < s; i++) flagPool[i]->Draw();
 	// bullets
 	s = (int)bulletPool.size();
 	for (int i = 0; i < s; i++) bulletPool[i]->Draw();
@@ -212,6 +209,9 @@ void MyApp::Tick( float deltaTime )
 	// particle explosions
 	s = (int)particleExpPool.size();
 	for (int i = 0; i < s; i++) particleExpPool[i]->Draw();
+	// flags
+	s = (int)flagPool.size();
+	for (int i = 0; i < s; i++) flagPool[i]->Draw();
 	// sand
 	s = (int)sand.size();
 	for (int i = 0; i < s; i++) sand[i]->Draw();
