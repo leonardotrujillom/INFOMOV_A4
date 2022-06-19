@@ -120,18 +120,26 @@ void MyApp::Tick( float deltaTime )
 	grid.Populate( tankPool );
 	// update and render actors
 	pointer->Remove();
-	for (int s = (int)sand.size(), i = s - 1; i >= 0; i--) sand[i]->Remove();
-	for (int s = (int)bulletPool.size(), i = s - 1; i >= 0; i--) bulletPool[i]->Remove();
-	for (int s = (int)tankPool.size(), i = s - 1; i >= 0; i--) tankPool[i]->Remove();
-	for (int s = (int)particleExpPool.size(), i = s - 1; i >= 0; i--) particleExpPool[i]->Remove();
-	for (int s = (int)spriteExpPool.size(), i = s - 1; i >= 0; i--) spriteExpPool[i]->Remove();
-	for (int s = (int)flagPool.size(), i = s - 1; i >= 0; i--) flagPool[i]->Remove();
+	int s = (int)sand.size();
+	for (int i = s - 1; i >= 0; i--) sand[i]->Remove();
+	s = (int)bulletPool.size();
+	for (int i = s - 1; i >= 0; i--) bulletPool[i]->Remove();
+	s = (int)tankPool.size();
+	for (int i = s - 1; i >= 0; i--) tankPool[i]->Remove();
+	s = (int)particleExpPool.size();
+	for (int i = s - 1; i >= 0; i--) particleExpPool[i]->Remove();
+	s = (int)spriteExpPool.size();
+	for (int i = s - 1; i >= 0; i--) spriteExpPool[i]->Remove();
+	s = (int)flagPool.size();
+	for (int i = s - 1; i >= 0; i--) flagPool[i]->Remove();
 
 	// individual ticks
 	// sand
-	for (int s = (int)sand.size(), i = 0; i < s; i++) sand[i]->Tick();
+	s = (int)sand.size();
+	for (int i = 0; i < s; i++) sand[i]->Tick();
 	// bullets
-	for (int i = 0; i < (int)bulletPool.size(); i++) {
+	s = (int)bulletPool.size();
+	for (int i = 0; i < s; i++) {
 		if (!bulletPool[i]->Tick()) {
 			// actor got deleted, replace by last in list
 			Bullet* lastBullet = bulletPool.back();
@@ -143,7 +151,8 @@ void MyApp::Tick( float deltaTime )
 		}
 	}
 	// sprite explosions
-	for (int i = 0; i < (int)spriteExpPool.size(); i++) {
+	s = (int)spriteExpPool.size();
+	for (int i = 0; i < s; i++) {
 		if (!spriteExpPool[i]->Tick()) {
 			// actor got deleted, replace by last in list
 			SpriteExplosion* lastSpriteExplosion = spriteExpPool.back();
@@ -155,7 +164,8 @@ void MyApp::Tick( float deltaTime )
 		}
 	}
 	// tanks
-	for (int i = 0; i < (int)tankPool.size(); i++) {
+	s = (int)tankPool.size();
+	for (int i = 0; i < s; i++) {
 		if (!tankPool[i]->Tick()) {
 			// actor got deleted, replace by last in list
 			Tank* lastTank = tankPool.back();
@@ -167,7 +177,8 @@ void MyApp::Tick( float deltaTime )
 		}
 	}
 	// particle explosions
-	for (int i = 0; i < (int)particleExpPool.size(); i++) {
+	s = (int)particleExpPool.size();
+	for (int i = 0; i < s; i++) {
 		if (!particleExpPool[i]->Tick()) {
 			// actor got deleted, replace by last in list
 			ParticleExplosion* lastParticleExplosion = particleExpPool.back();
@@ -179,32 +190,31 @@ void MyApp::Tick( float deltaTime )
 		}
 	}
 	// flags
-	for (int i = 0; i < (int)flagPool.size(); i++) {
-		if (!flagPool[i]->Tick()) {
-			// actor got deleted, replace by last in list
-			VerletFlag* lastFlag = flagPool.back();
-			VerletFlag* toDelete = flagPool[i];
-			flagPool.pop_back();
-			if (lastFlag != toDelete) flagPool[i] = lastFlag;
-			delete toDelete;
-			i--;
-		}
+	s = (int)flagPool.size();
+	for (int i = 0; i < s; i++) {
+		flagPool[i]->Tick();
 	}
 	coolDown++;
 
 	// indivual draws
-	// bullets
-	for (int s = (int)bulletPool.size(), i = 0; i < s; i++) bulletPool[i]->Draw();
-	// sprite explosions
-	for (int s = (int)spriteExpPool.size(), i = 0; i < s; i++) spriteExpPool[i]->Draw();
-	// tanks
-	for (int s = (int)tankPool.size(), i = 0; i < s; i++) tankPool[i]->Draw();
-	// particle explosions
-	for (int s = (int)particleExpPool.size(), i = 0; i < s; i++) particleExpPool[i]->Draw();
 	// flags
-	for (int s = (int)flagPool.size(), i = 0; i < s; i++) flagPool[i]->Draw();
+	s = (int)flagPool.size();
+	for (int i = 0; i < s; i++) flagPool[i]->Draw();
+	// bullets
+	s = (int)bulletPool.size();
+	for (int i = 0; i < s; i++) bulletPool[i]->Draw();
+	// sprite explosions
+	s = (int)spriteExpPool.size();
+	for (int i = 0; i < s; i++) spriteExpPool[i]->Draw();
+	// tanks
+	s = (int)tankPool.size();
+	for (int i = 0; i < s; i++) tankPool[i]->Draw();
+	// particle explosions
+	s = (int)particleExpPool.size();
+	for (int i = 0; i < s; i++) particleExpPool[i]->Draw();
 	// sand
-	for (int s = (int)sand.size(), i = 0; i < s; i++) sand[i]->Draw();
+	s = (int)sand.size();
+	for (int i = 0; i < s; i++) sand[i]->Draw();
 	// cursor
 	int2 cursorPos = map.ScreenToMap( mousePos );
 	pointer->Draw( map.bitmap, make_float2( cursorPos ), 0 );
