@@ -22,24 +22,24 @@ void MyApp::Init()
 	// create armies
 	for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) // main groups
 	{
-		Actor* army1Tank = new Tank( tank1, make_int2( 520 + x * 32, 2420 - y * 32 ), make_int2( 5000, -500 ), 0, 0 );
-		Actor* army2Tank = new Tank( tank2, make_int2( 3300 - x * 32, y * 32 + 700 ), make_int2( -1000, 4000 ), 10, 1 );
-		actorPool.push_back( army1Tank );
-		actorPool.push_back( army2Tank );
+		Tank* army1Tank = new Tank( tank1, make_int2( 520 + x * 32, 2420 - y * 32 ), make_int2( 5000, -500 ), 0, 0 );
+		Tank* army2Tank = new Tank( tank2, make_int2( 3300 - x * 32, y * 32 + 700 ), make_int2( -1000, 4000 ), 10, 1 );
+		tankPool.push_back( army1Tank );
+		tankPool.push_back( army2Tank );
 	}
 	for (int y = 0; y < 12; y++) for (int x = 0; x < 12; x++) // backup
 	{
-		Actor* army1Tank = new Tank( tank1, make_int2( 40 + x * 32, 2620 - y * 32 ), make_int2( 5000, -500 ), 0, 0 );
-		Actor* army2Tank = new Tank( tank2, make_int2( 3900 - x * 32, y * 32 + 300 ), make_int2( -1000, 4000 ), 10, 1 );
-		actorPool.push_back( army1Tank );
-		actorPool.push_back( army2Tank );
+		Tank* army1Tank = new Tank( tank1, make_int2( 40 + x * 32, 2620 - y * 32 ), make_int2( 5000, -500 ), 0, 0 );
+		Tank* army2Tank = new Tank( tank2, make_int2( 3900 - x * 32, y * 32 + 300 ), make_int2( -1000, 4000 ), 10, 1 );
+		tankPool.push_back( army1Tank );
+		tankPool.push_back( army2Tank );
 	}
 	for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) // small forward groups
 	{
-		Actor* army1Tank = new Tank( tank1, make_int2( 1440 + x * 32, 2220 - y * 32 ), make_int2( 3500, -500 ), 0, 0 );
-		Actor* army2Tank = new Tank( tank2, make_int2( 2400 - x * 32, y * 32 + 900 ), make_int2( 1300, 4000 ), 128, 1 );
-		actorPool.push_back( army1Tank );
-		actorPool.push_back( army2Tank );
+		Tank* army1Tank = new Tank( tank1, make_int2( 1440 + x * 32, 2220 - y * 32 ), make_int2( 3500, -500 ), 0, 0 );
+		Tank* army2Tank = new Tank( tank2, make_int2( 2400 - x * 32, y * 32 + 900 ), make_int2( 1300, 4000 ), 128, 1 );
+		tankPool.push_back( army1Tank );
+		tankPool.push_back( army2Tank );
 	}
 	// load mountain peaks
 	Surface mountains( "assets/peaks.png" );
@@ -62,9 +62,9 @@ void MyApp::Init()
 	// place flags
 	Surface* flagPattern = new Surface( "assets/flag.png" );
 	VerletFlag* flag1 = new VerletFlag( make_int2( 3000, 848 ), flagPattern );
-	actorPool.push_back( flag1 );
+	flagPool.push_back(flag1);
 	VerletFlag* flag2 = new VerletFlag( make_int2( 1076, 1870 ), flagPattern );
-	actorPool.push_back( flag2 );
+	flagPool.push_back( flag2 );
 	// initialize map view
 	map.UpdateView( screen, zoom );
 }
@@ -117,25 +117,95 @@ void MyApp::Tick( float deltaTime )
 	map.Draw( screen );
 	// rebuild actor grid
 	grid.Clear();
-	grid.Populate( actorPool );
+	grid.Populate( tankPool );
 	// update and render actors
 	pointer->Remove();
 	for (int s = (int)sand.size(), i = s - 1; i >= 0; i--) sand[i]->Remove();
-	for (int s = (int)actorPool.size(), i = s - 1; i >= 0; i--) actorPool[i]->Remove();
+	for (int s = (int)bulletPool.size(), i = s - 1; i >= 0; i--) bulletPool[i]->Remove();
+	for (int s = (int)tankPool.size(), i = s - 1; i >= 0; i--) tankPool[i]->Remove();
+	for (int s = (int)particleExpPool.size(), i = s - 1; i >= 0; i--) particleExpPool[i]->Remove();
+	for (int s = (int)spriteExpPool.size(), i = s - 1; i >= 0; i--) spriteExpPool[i]->Remove();
+	for (int s = (int)flagPool.size(), i = s - 1; i >= 0; i--) flagPool[i]->Remove();
+
+	// individual ticks
+	// sand
 	for (int s = (int)sand.size(), i = 0; i < s; i++) sand[i]->Tick();
-	for (int i = 0; i < (int)actorPool.size(); i++) if (!actorPool[i]->Tick())
-	{
-		// actor got deleted, replace by last in list
-		Actor* lastActor = actorPool.back();
-		Actor* toDelete = actorPool[i];
-		actorPool.pop_back();
-		if (lastActor != toDelete) actorPool[i] = lastActor;
-		delete toDelete;
-		i--;
+	// bullets
+	for (int i = 0; i < (int)bulletPool.size(); i++) {
+		if (!bulletPool[i]->Tick()) {
+			// actor got deleted, replace by last in list
+			Bullet* lastBullet = bulletPool.back();
+			Bullet* toDelete = bulletPool[i];
+			bulletPool.pop_back();
+			if (lastBullet != toDelete) bulletPool[i] = lastBullet;
+			delete toDelete;
+			i--;
+		}
+	}
+	// sprite explosions
+	for (int i = 0; i < (int)spriteExpPool.size(); i++) {
+		if (!spriteExpPool[i]->Tick()) {
+			// actor got deleted, replace by last in list
+			SpriteExplosion* lastSpriteExplosion = spriteExpPool.back();
+			SpriteExplosion* toDelete = spriteExpPool[i];
+			spriteExpPool.pop_back();
+			if (lastSpriteExplosion != toDelete) spriteExpPool[i] = lastSpriteExplosion;
+			delete toDelete;
+			i--;
+		}
+	}
+	// tanks
+	for (int i = 0; i < (int)tankPool.size(); i++) {
+		if (!tankPool[i]->Tick()) {
+			// actor got deleted, replace by last in list
+			Tank* lastTank = tankPool.back();
+			Tank* toDelete = tankPool[i];
+			tankPool.pop_back();
+			if (lastTank != toDelete) tankPool[i] = lastTank;
+			delete toDelete;
+			i--;
+		}
+	}
+	// particle explosions
+	for (int i = 0; i < (int)particleExpPool.size(); i++) {
+		if (!particleExpPool[i]->Tick()) {
+			// actor got deleted, replace by last in list
+			ParticleExplosion* lastParticleExplosion = particleExpPool.back();
+			ParticleExplosion* toDelete = particleExpPool[i];
+			particleExpPool.pop_back();
+			if (lastParticleExplosion != toDelete) particleExpPool[i] = lastParticleExplosion;
+			delete toDelete;
+			i--;
+		}
+	}
+	// flags
+	for (int i = 0; i < (int)flagPool.size(); i++) {
+		if (!flagPool[i]->Tick()) {
+			// actor got deleted, replace by last in list
+			VerletFlag* lastFlag = flagPool.back();
+			VerletFlag* toDelete = flagPool[i];
+			flagPool.pop_back();
+			if (lastFlag != toDelete) flagPool[i] = lastFlag;
+			delete toDelete;
+			i--;
+		}
 	}
 	coolDown++;
-	for (int s = (int)actorPool.size(), i = 0; i < s; i++) actorPool[i]->Draw();
+
+	// indivual draws
+	// bullets
+	for (int s = (int)bulletPool.size(), i = 0; i < s; i++) bulletPool[i]->Draw();
+	// sprite explosions
+	for (int s = (int)spriteExpPool.size(), i = 0; i < s; i++) spriteExpPool[i]->Draw();
+	// tanks
+	for (int s = (int)tankPool.size(), i = 0; i < s; i++) tankPool[i]->Draw();
+	// particle explosions
+	for (int s = (int)particleExpPool.size(), i = 0; i < s; i++) particleExpPool[i]->Draw();
+	// flags
+	for (int s = (int)flagPool.size(), i = 0; i < s; i++) flagPool[i]->Draw();
+	// sand
 	for (int s = (int)sand.size(), i = 0; i < s; i++) sand[i]->Draw();
+	// cursor
 	int2 cursorPos = map.ScreenToMap( mousePos );
 	pointer->Draw( map.bitmap, make_float2( cursorPos ), 0 );
 	// handle mouse

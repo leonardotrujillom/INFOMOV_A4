@@ -3,7 +3,7 @@
 // Fast sprite code by Marc de Fluiter.
 
 // Enable loop unrolling or not
-#define UNROLLING
+//#define UNROLLING
 
 // OPT: Precalculations
 const float2 p[4] = { make_float2( -1, -1 ), make_float2( 1, -1 ), make_float2( 1, 1 ), make_float2( -1, 1 ) };
@@ -282,6 +282,7 @@ void SpriteInstance::Draw( Surface* target, float2 pos, int frame )
 		}
 	else
 	#endif
+//#pragma omp parallel for
 		for (int v = 0; v < frameSizeMinusOne; v++)
 		{
 			uint* dst = dst_start + v * target->width;

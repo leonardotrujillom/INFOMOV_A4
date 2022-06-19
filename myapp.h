@@ -27,7 +27,12 @@ public:
 	SpriteInstance* pointer;					// mouse pointer sprite
 	// static data, for global access
 	static inline Map map;						// the map
-	static inline vector<Actor*> actorPool;		// actor pool
+	//static inline vector<Actor*> actorPool;							// actor pool
+	static inline vector<Tank*> tankPool;								// tank pool
+	static inline vector<Bullet*> bulletPool;							// bullet pool
+	static inline vector<SpriteExplosion*> spriteExpPool;			// sprite explosion pool
+	static inline vector<ParticleExplosion*> particleExpPool;	// particle explosion pool
+	static inline vector<VerletFlag*> flagPool;						// flag pool
 	static inline vector<float3> peaks;			// mountain peaks to evade
 	static inline vector<Particle*> sand;		// sand particles
 	static inline Grid grid;					// actor grid for faster range queries

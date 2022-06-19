@@ -28,7 +28,8 @@ bool Tank::Tick()
 	// handle incoming bullets
 	if (hitByBullet)
 	{
-		MyApp::actorPool.push_back( new ParticleExplosion( this ) );
+		//MyApp::actorPool.push_back( new ParticleExplosion( this ) );
+		MyApp::particleExpPool.push_back(new ParticleExplosion(this));
 		return false;
 	}
 	// fire bullet if cooled down and enemy is in range
@@ -43,7 +44,8 @@ bool Tank::Tick()
 			{
 				// create a bullet and add it to the actor list
 				Bullet* newBullet = new Bullet( make_int2( pos + 20 * dir ), frame, army );
-				MyApp::actorPool.push_back( newBullet );
+				//MyApp::actorPool.push_back( newBullet );
+				MyApp::bulletPool.push_back(newBullet);
 				// reset cooldown timer so we don't do rapid fire
 				coolDown = 0;
 				MyApp::coolDown = 0;
@@ -137,7 +139,8 @@ bool Bullet::Tick()
 	frameCounter++;
 	if (frameCounter == 110)
 	{
-		MyApp::actorPool.push_back( new SpriteExplosion( this ) );
+		//MyApp::actorPool.push_back( new SpriteExplosion( this ) );
+		MyApp::spriteExpPool.push_back(new SpriteExplosion(this));
 		return false;
 	}
 	// destroy bullet if it leaves the map
