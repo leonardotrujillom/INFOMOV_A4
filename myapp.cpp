@@ -193,8 +193,9 @@ void MyApp::Tick( float deltaTime )
 			s = (int)particleExpPool.size();
 		}
 	}
-	// flags
+	// flags HOTSPOT #3
 	s = (int)flagPool.size();
+//#pragma omp parallel for // NO GAIN SINCE ONLY 2 FLAGS
 	for (int i = 0; i < s; i++) {
 		flagPool[i]->Tick();
 	}
@@ -207,8 +208,9 @@ void MyApp::Tick( float deltaTime )
 	// sprite explosions
 	s = (int)spriteExpPool.size();
 	for (int i = 0; i < s; i++) spriteExpPool[i]->Draw();
-	// tanks
+	// tanks HOTSPOT #1
 	s = (int)tankPool.size();
+//#pragma omp parallel for // WRONG PIXEL INTERP WHEN PARALLEL
 	for (int i = 0; i < s; i++) tankPool[i]->Draw();
 	// particle explosions
 	s = (int)particleExpPool.size();
@@ -216,8 +218,9 @@ void MyApp::Tick( float deltaTime )
 	// flags
 	s = (int)flagPool.size();
 	for (int i = 0; i < s; i++) flagPool[i]->Draw();
-	// sand
+	// sand HOTSPOT #2
 	s = (int)sand.size();
+//#pragma omp parallel for // WRONG PIXEL INTERP WHEN PARALLEL
 	for (int i = 0; i < s; i++) sand[i]->Draw();
 	// cursor
 	int2 cursorPos = map.ScreenToMap( mousePos );

@@ -20,6 +20,33 @@ inline int max( int x, int y )
 	return (x > y) ? x : y;
 }
 
+inline __m128i ScaleColor_4(const __m128i c_4, const __m128i scale_4)
+{
+	static const __m128i rb_mask = _mm_set1_epi32(0x00ff00ff);
+	static const __m128i ag_mask = _mm_set1_epi32(0xff00ff00);
+
+	/*
+	* const uint rb = (((c & 0xff00ff) * scale) >> 8) & 0x00ff00ff;
+	*/
+	__m128i rb_4 = _mm_and_si128(c_4, rb_mask);
+	rb_4 = _mm_mullo_epi32(rb_4, scale_4);
+	rb_4 = _mm_srli_epi32(rb_4, 8);
+	rb_4 = _mm_and_si128(rb_4, rb_mask);
+
+	/*
+	* const uint ag = (((color & 0xff00ff00) >> 8) * scale) & 0xff00ff00;
+	*/
+	__m128i ag_4 = _mm_and_si128(c_4, ag_mask);
+	ag_4 = _mm_srli_epi32(ag_4, 8);
+	ag_4 = _mm_mullo_epi32(ag_4, scale_4);
+	ag_4 = _mm_and_si128(ag_4, ag_mask);
+
+	/*
+	* return rb + ag;
+	*/
+	return _mm_add_epi32(rb_4, ag_4);
+}
+
 uint ReadBilerp( Surface& bitmap, float u, float v )
 {
 	// read from a bitmap with bilinear interpolation.
@@ -232,6 +259,10 @@ void SpriteInstance::Draw( Surface* target, float2 pos, int frame )
 	uint w1 = (frac_x_inv * frac_y) >> 8;
 	uint w2 = (frac_x * frac_y_inv) >> 8;
 	uint w3 = (frac_x_inv * frac_y_inv) >> 8;
+	__m128i w0_4 = _mm_set1_epi32(w0);
+	__m128i w1_4 = _mm_set1_epi32(w1);
+	__m128i w2_4 = _mm_set1_epi32(w2);
+	__m128i w3_4 = _mm_set1_epi32(w3);
 	// draw the sprite frame
 	uint stride = sprite->frameCount * frameSize;
 	// Precalculations
@@ -282,19 +313,25 @@ void SpriteInstance::Draw( Surface* target, float2 pos, int frame )
 		}
 	else
 	#endif
-//#pragma omp parallel for
 		for (int v = 0; v < frameSizeMinusOne; v++)
 		{
 			uint* dst = dst_start + v * target->width;
 			uint* src = src_start + v * stride;
-			for (int u = 0; u < frameSizeMinusOne; u++, src++, dst++)
+			for (int u = 0; u < frameSizeMinusOne - 3; u+=4, src+=4, dst+=4)
 			{
-				uint pix = ScaleColor( src[0], w0 )
-					+ ScaleColor( src[1], w1 )
-					+ ScaleColor( src[stride], w2 )
-					+ ScaleColor( src[stride + 1], w3 );
-				uint alpha = pix >> 24;
-				*dst = ScaleColor( pix, alpha ) + ScaleColor( *dst, 255 - alpha );
+				__m128i p0_4 = *(__m128i*)src;
+				__m128i p1_4 = *(__m128i*)(src + 1);
+				__m128i p2_4 = *(__m128i*)(src + stride);
+				__m128i p3_4 = *(__m128i*)(src + stride + 1);
+				__m128i pix_4 = _mm_add_epi32(ScaleColor_4(p0_4, w0_4), ScaleColor_4(p1_4, w1_4));
+				pix_4 = _mm_add_epi32(pix_4, ScaleColor_4(p2_4, w2_4));
+				pix_4 = _mm_add_epi32(pix_4, ScaleColor_4(p3_4, w3_4));
+
+				__m128i alpha_4 = _mm_srli_epi32(pix_4, 24);
+				//*dst = ScaleColor( pix, alpha ) + ScaleColor( *dst, 255 - alpha );
+				__m128i alpha_comp_4 = _mm_set1_epi32(255);
+				alpha_comp_4 = _mm_sub_epi32(alpha_comp_4, alpha_4);
+				*(__m128i*)dst = _mm_add_epi32(ScaleColor_4(pix_4, alpha_4), ScaleColor_4(*(__m128i*)dst, alpha_comp_4));
 			}
 		}
 }
