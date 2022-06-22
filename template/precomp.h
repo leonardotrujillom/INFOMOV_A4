@@ -274,6 +274,32 @@ inline uint AddBlend( const uint c1, const uint c2 )
 	const uint b = min( 255u, b1 + b2 );
 	return (r << 16) + (g << 8) + b;
 }
+inline __m128i ScaleColor_4(const __m128i c_4, const __m128i scale_4)
+{
+	static const __m128i rb_mask = _mm_set1_epi32(0x00ff00ff);
+	static const __m128i ag_mask = _mm_set1_epi32(0xff00ff00);
+
+	/*
+	* const uint rb = (((c & 0xff00ff) * scale) >> 8) & 0x00ff00ff;
+	*/
+	__m128i rb_4 = _mm_and_si128(c_4, rb_mask);
+	rb_4 = _mm_mullo_epi32(rb_4, scale_4);
+	rb_4 = _mm_srli_epi32(rb_4, 8);
+	rb_4 = _mm_and_si128(rb_4, rb_mask);
+
+	/*
+	* const uint ag = (((color & 0xff00ff00) >> 8) * scale) & 0xff00ff00;
+	*/
+	__m128i ag_4 = _mm_and_si128(c_4, ag_mask);
+	ag_4 = _mm_srli_epi32(ag_4, 8);
+	ag_4 = _mm_mullo_epi32(ag_4, scale_4);
+	ag_4 = _mm_and_si128(ag_4, ag_mask);
+
+	/*
+	* return rb + ag;
+	*/
+	return _mm_add_epi32(rb_4, ag_4);
+}
 
 // random numbers
 uint RandomUInt();

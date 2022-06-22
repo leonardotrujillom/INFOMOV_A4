@@ -82,6 +82,7 @@ bool VerletFlag::Tick()
 	{
 		float squaredDelta = 0;
 
+		// width = 128, height = 48
 		for (int x = 1; x < width; x++) {
 			int index = x;
 			for (int y = 0; y < height; y++)
@@ -99,7 +100,6 @@ bool VerletFlag::Tick()
 					pos[index] += halfExcess;
 					pos[index - 1] -= halfExcess;
 				}
-
 				index += width;
 			}
 		}
