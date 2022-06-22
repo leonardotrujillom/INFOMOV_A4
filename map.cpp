@@ -1,5 +1,8 @@
 #include "precomp.h"
 
+//#define TILE_WIDTH 960 
+//#define TILE_HEIGHT 540 
+
 // Fast map rendering code by Conor Holden
 
 Map::Map()
@@ -56,15 +59,117 @@ void Map::Draw( Surface* target )
 	int dx = ((view.z - view.x) * 16384) * inv_SCRWIDTH;
 	int dy = ((view.w - view.y) * 16384) * inv_SCRHEIGHT;
 	// draw pixels
-#pragma omp parallel for schedule(static)
+
+#ifdef TILE_WIDTH
+	int tile_no_x_half = SCRWIDTH / TILE_WIDTH >> 1;
+	int tile_no_y_half = SCRHEIGHT / TILE_HEIGHT >> 1;
+	int tile_no_half = tile_no_x_half * tile_no_y_half * 2;
+//#pragma omp parallel for
+	for (int tile = 0; tile < tile_no_half; tile++) {
+		int y_index = (tile / tile_no_x_half);
+		int y_start = y_index * TILE_HEIGHT;
+		int y_end = y_start + TILE_HEIGHT;
+		int x_start = ((tile % tile_no_x_half) * 2 + y_index % 2) * TILE_WIDTH;
+		int x_end = x_start + TILE_WIDTH;
+		int2 map_start = ScreenToMap(int2(x_start, y_start));
+		uint x0_fp = ((view.x) << 14);
+		uint y0_fp = ((view.y) << 14);
+		uint* mapLine_start = bitmap->pixels;
+		uint* dst_start = target->pixels + x_start;
+		uint* lst_start = last_frame.pixels + x_start;
+		for (int y = y_start; y < y_end; y++)
+		{
+			uint y_fp = y0_fp + y * dy;
+			uint* mapLine = mapLine_start + (y_fp >> 14) * width;
+			uint* dst = dst_start + y * SCRWIDTH;
+			uint* lst = lst_start + y * SCRWIDTH;
+			const uint y_frac = y_fp & 16383;
+			for (int x = x_start; x < x_end; x++)
+			{
+				uint x_fp = x0_fp + x * dx;
+				const uint mapPos = x_fp >> 14;
+				const uint p1 = mapLine[mapPos];
+				const uint p2 = mapLine[mapPos + 1]; // mem
+				uint combined = p1 + p2; // int
+				const uint p3 = mapLine[mapPos + width]; // mem
+				combined += p3; //int
+				const uint p4 = mapLine[mapPos + width + 1]; // mem
+				combined += p4; //int
+				if (*lst != combined)
+				{
+					const uint x_frac = x_fp & 16383; // integer
+					*lst = combined; // memory
+					const uint w1 = ((16383 - x_frac) * (16383 - y_frac)) >> 20; // integer
+					const uint w3 = ((16383 - x_frac) * y_frac) >> 20;
+					const uint w2 = (x_frac * (16383 - y_frac)) >> 20;
+					const uint w4 = 255 - (w1 + w2 + w3);
+					*dst = ScaleColor(p1, w1) + ScaleColor(p2, w2) + ScaleColor(p3, w3) + ScaleColor(p4, w4);
+				}
+				dst++;
+				lst++;
+			}
+		}
+	}
+//#pragma omp parallel fors
+	for (int tile = 0; tile < tile_no_half; tile++) {
+		int y_index = (tile / tile_no_x_half);
+		int y_start = y_index * TILE_HEIGHT;
+		int y_end = y_start + TILE_HEIGHT;
+		int x_start = ((tile % tile_no_x_half) * 2 + (y_index + 1) % 2) * TILE_WIDTH;
+		int x_end = x_start + TILE_WIDTH;
+		int2 map_start = ScreenToMap(int2(x_start, y_start));
+		uint x0_fp = ((view.x) << 14);
+		uint y0_fp = ((view.y) << 14);
+		uint* mapLine_start = bitmap->pixels;
+		uint* dst_start = target->pixels + x_start;
+		uint* lst_start = last_frame.pixels + x_start;
+		for (int y = y_start; y < y_end; y++)
+		{
+			uint y_fp = y0_fp + y * dy;
+			uint* mapLine = mapLine_start + (y_fp >> 14) * width;
+			uint* dst = dst_start + y * SCRWIDTH;
+			uint* lst = lst_start + y * SCRWIDTH;
+			const uint y_frac = y_fp & 16383;
+			for (int x = x_start; x < x_end; x++)
+			{
+				uint x_fp = x0_fp + x * dx;
+				const uint mapPos = x_fp >> 14;
+				const uint p1 = mapLine[mapPos];
+				const uint p2 = mapLine[mapPos + 1]; // mem
+				uint combined = p1 + p2; // int
+				const uint p3 = mapLine[mapPos + width]; // mem
+				combined += p3; //int
+				const uint p4 = mapLine[mapPos + width + 1]; // mem
+				combined += p4; //int
+				if (*lst != combined)
+				{
+					const uint x_frac = x_fp & 16383; // integer
+					*lst = combined; // memory
+					const uint w1 = ((16383 - x_frac) * (16383 - y_frac)) >> 20; // integer
+					const uint w3 = ((16383 - x_frac) * y_frac) >> 20;
+					const uint w2 = (x_frac * (16383 - y_frac)) >> 20;
+					const uint w4 = 255 - (w1 + w2 + w3);
+					*dst = ScaleColor(p1, w1) + ScaleColor(p2, w2) + ScaleColor(p3, w3) + ScaleColor(p4, w4);
+				}
+				dst++;
+				lst++;
+			}
+		}
+	}
+#else
+	uint x0_fp = view.x << 14;
+	uint y0_fp = view.y << 14;
+	uint* mapLine_start = bitmap->pixels;
+	uint* dst_start = target->pixels;
+	uint* lst_start = last_frame.pixels;
 	for (int y = 0; y < SCRHEIGHT; y++)
 	{
-		uint y_fp = (view.y << 14) + y * dy;
-		uint* mapLine = bitmap->pixels + (y_fp >> 14) * width;
-		uint* dst = target->pixels + y * SCRWIDTH;
-		uint* lst = last_frame.pixels + y * SCRWIDTH;
+		uint y_fp = y0_fp + y * dy;
+		uint* mapLine = mapLine_start + (y_fp >> 14) * width;
+		uint* dst = dst_start + y * SCRWIDTH;
+		uint* lst = lst_start + y * SCRWIDTH;
 		const uint y_frac = y_fp & 16383;
-		uint x_fp = view.x << 14;
+		uint x_fp = x0_fp;
 		for (int x = 0; x < SCRWIDTH; x++, x_fp += dx)
 		{
 			const uint mapPos = x_fp >> 14;
@@ -89,6 +194,7 @@ void Map::Draw( Surface* target )
 			lst++;
 		}
 	}
+#endif
 }
 
 int2 Map::ScreenToMap( int2 pos )
