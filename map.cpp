@@ -203,6 +203,7 @@ void Map::Draw( Surface* target )
 		}
 	}
 #else // NOT_VECTORIZE
+#pragma omp parallel for schedule(static)
 	for (int y = 0; y < SCRHEIGHT; y++)
 	{
 		uint y_fp = y0_fp + y * dy;
