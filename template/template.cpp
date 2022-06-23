@@ -260,11 +260,21 @@ void main()
 	float deltaTime = 0;
 	static int frameNr = 0;
 	static Timer timer;
+	float totalTickTime = 0;
+	ofstream fw("extras/avgTime.txt", std::ofstream::out);
 	while (!glfwWindowShouldClose( window ))
 	{
 		deltaTime = min( 500.0f, 1000.0f * timer.elapsed() );
 		timer.reset();
-		app->Tick( deltaTime );
+		if (frameNr < 30) {
+			app->Tick(deltaTime);
+		}
+		else {
+			float tick0 = timer.elapsed();
+			app->Tick(deltaTime);
+			float tick1 = timer.elapsed();
+			totalTickTime += tick1 - tick0;
+		}
 		// send the rendering result to the screen using OpenGL
 		if (frameNr++ > 1)
 		{
@@ -277,6 +287,10 @@ void main()
 			glfwPollEvents();
 		}
 		if (!running) break;
+		if (frameNr == 1054) {
+			fw << totalTickTime*1000 / 1024 << "\n";
+			fw.close();
+		}
 	}
 	// close down
 	app->Shutdown();

@@ -1,7 +1,7 @@
 #include "precomp.h"
 
-//#define TILE_WIDTH 960 
-//#define TILE_HEIGHT 540 
+#define TILE_WIDTH 960 
+#define TILE_HEIGHT 540 
 
 // Fast map rendering code by Conor Holden
 
@@ -60,7 +60,7 @@ void Map::Draw( Surface* target )
 	int dy = ((view.w - view.y) * 16384) * inv_SCRHEIGHT;
 	// draw pixels
 
-#ifdef TILE_WIDTH
+#if 0 // TILES
 	int tile_no_x_half = SCRWIDTH / TILE_WIDTH >> 1;
 	int tile_no_y_half = SCRHEIGHT / TILE_HEIGHT >> 1;
 	int tile_no_half = tile_no_x_half * tile_no_y_half * 2;
@@ -156,12 +156,13 @@ void Map::Draw( Surface* target )
 			}
 		}
 	}
-#else
+#else // NO TILES
 	uint x0_fp = view.x << 14;
 	uint y0_fp = view.y << 14;
 	uint* mapLine_start = bitmap->pixels;
 	uint* dst_start = target->pixels;
 	uint* lst_start = last_frame.pixels;
+#if 1 // VECTORIZE
 	for (int y = 0; y < SCRHEIGHT; y++)
 	{
 		uint y_fp = y0_fp + y * dy;
@@ -188,13 +189,55 @@ void Map::Draw( Surface* target )
 				const uint w3 = ((16383 - x_frac) * y_frac) >> 20;
 				const uint w2 = (x_frac * (16383 - y_frac)) >> 20;
 				const uint w4 = 255 - (w1 + w2 + w3);
-				*dst = ScaleColor( p1, w1 ) + ScaleColor( p2, w2 ) + ScaleColor( p3, w3 ) + ScaleColor( p4, w4 ); // 
+
+				__m128i p_4 = _mm_setr_epi32(p1, p2, p3, p4);
+				__m128i w_4 = _mm_setr_epi32(w1, w2, w3, w4);
+				p_4 = ScaleColor_4(p_4, w_4);
+
+				*dst = _mm_extract_epi32(p_4, 0) + _mm_extract_epi32(p_4, 1) + _mm_extract_epi32(p_4, 2) + _mm_extract_epi32(p_4, 3);
+
+				//*dst = ScaleColor(p1, w1) + ScaleColor(p2, w2) + ScaleColor(p3, w3) + ScaleColor(p4, w4); // 
 			}
 			dst++;
 			lst++;
 		}
 	}
-#endif
+#else // NOT_VECTORIZE
+	for (int y = 0; y < SCRHEIGHT; y++)
+	{
+		uint y_fp = y0_fp + y * dy;
+		uint* mapLine = mapLine_start + (y_fp >> 14) * width;
+		uint* dst = dst_start + y * SCRWIDTH;
+		uint* lst = lst_start + y * SCRWIDTH;
+		const uint y_frac = y_fp & 16383;
+		uint x_fp = x0_fp;
+		for (int x = 0; x < SCRWIDTH; x++, x_fp += dx)
+		{
+			const uint mapPos = x_fp >> 14;
+			const uint p1 = mapLine[mapPos];
+			const uint p2 = mapLine[mapPos + 1]; // mem
+			uint combined = p1 + p2; // int
+			const uint p3 = mapLine[mapPos + width]; // mem
+			combined += p3; //int
+			const uint p4 = mapLine[mapPos + width + 1]; // mem
+			combined += p4; //int
+			if (*lst != combined)
+			{
+				const uint x_frac = x_fp & 16383; // integer
+				*lst = combined; // memory
+				const uint w1 = ((16383 - x_frac) * (16383 - y_frac)) >> 20; // integer
+				const uint w3 = ((16383 - x_frac) * y_frac) >> 20;
+				const uint w2 = (x_frac * (16383 - y_frac)) >> 20;
+				const uint w4 = 255 - (w1 + w2 + w3);
+				*dst = ScaleColor(p1, w1) + ScaleColor(p2, w2) + ScaleColor(p3, w3) + ScaleColor(p4, w4); // 
+			}
+			dst++;
+			lst++;
+		}
+	}
+#endif // VECTORIZE
+
+#endif // TILES
 }
 
 int2 Map::ScreenToMap( int2 pos )
