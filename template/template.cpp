@@ -266,13 +266,10 @@ void main()
 	{
 		deltaTime = min(500.0f, 1000.0f * timer.elapsed());
 		timer.reset();
-		if (frameNr < 50) {
-			app->Tick(deltaTime);
-		}
-		else {
-			float tick0 = timer.elapsed();
-			app->Tick(deltaTime);
-			float tick1 = timer.elapsed();
+		float tick0 = timer.elapsed();
+		app->Tick(deltaTime);
+		float tick1 = timer.elapsed();
+		if (frameNr >= 50) {
 			totalTickTime += tick1 - tick0;
 		}
 		// send the rendering result to the screen using OpenGL

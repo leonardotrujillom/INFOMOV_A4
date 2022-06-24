@@ -226,6 +226,7 @@ void SpriteInstance::Draw( Surface* target, float2 pos, int frame )
 	// calculate bilinear weights - these are constant in this case.
 	uint frac_x = (int)(255.0f * (pos.x - floorf( pos.x )));
 	uint frac_y = (int)(255.0f * (pos.y - floorf( pos.y )));
+#if 1 // VECTORIZED
 	// Precalculations
 	uint frac_x_inv = (255 - frac_x), frac_y_inv = (255 - frac_y);
 	uint w0 = (frac_x * frac_y) >> 8;
@@ -285,7 +286,7 @@ void SpriteInstance::Draw( Surface* target, float2 pos, int frame )
 			}
 		}
 	else
-	#endif
+#endif // UNROLLING
 		for (int v = 0; v < frameSizeMinusOne; v++)
 		{
 			uint* dst = dst_start + v * target->width;
@@ -307,6 +308,78 @@ void SpriteInstance::Draw( Surface* target, float2 pos, int frame )
 				*(__m128i*)dst = _mm_add_epi32(ScaleColor_4(pix_4, alpha_4), ScaleColor_4(*(__m128i*)dst, alpha_comp_4));
 			}
 		}
+#else // NOT-VECTORIZED
+	// Precalculations
+	uint frac_x_inv = (255 - frac_x), frac_y_inv = (255 - frac_y);
+	uint w0 = (frac_x * frac_y) >> 8;
+	uint w1 = (frac_x_inv * frac_y) >> 8;
+	uint w2 = (frac_x * frac_y_inv) >> 8;
+	uint w3 = (frac_x_inv * frac_y_inv) >> 8;
+	// draw the sprite frame
+	uint stride = sprite->frameCount * frameSize;
+	// Precalculations
+	uint* src_start = sprite->pixels + frame * frameSize;
+	int frameSizeMinusOne = frameSize - 1;
+#ifdef UNROLLING
+	if ((frameSizeMinusOne & (frameSizeMinusOne - 1)) == 0)
+		for (int v = 0; v < frameSizeMinusOne; v += 2)
+		{
+			uint* new_dst_start = dst_start + v * target->width;
+			uint* new_src_start = src_start + v * stride;
+			uint* dst = new_dst_start;
+			uint* src = new_src_start;
+			for (int u = 0; u < frameSizeMinusOne; u++, src++, dst++)
+			{
+				uint pix = ScaleColor(src[0], w0)
+					+ ScaleColor(src[1], w1)
+					+ ScaleColor(src[stride], w2)
+					+ ScaleColor(src[stride + 1], w3);
+				uint alpha = pix >> 24;
+				*dst = ScaleColor(pix, alpha) + ScaleColor(*dst, 255 - alpha);
+				u++, src++, dst++;
+				pix = ScaleColor(src[0], w0)
+					+ ScaleColor(src[1], w1)
+					+ ScaleColor(src[stride], w2)
+					+ ScaleColor(src[stride + 1], w3);
+				alpha = pix >> 24;
+				*dst = ScaleColor(pix, alpha) + ScaleColor(*dst, 255 - alpha);
+			}
+			dst = new_dst_start + target->width;
+			src = new_src_start + stride;
+			for (int u = 0; u < frameSizeMinusOne; u++, src++, dst++)
+			{
+				uint pix = ScaleColor(src[0], w0)
+					+ ScaleColor(src[1], w1)
+					+ ScaleColor(src[stride], w2)
+					+ ScaleColor(src[stride + 1], w3);
+				uint alpha = pix >> 24;
+				*dst = ScaleColor(pix, alpha) + ScaleColor(*dst, 255 - alpha);
+				u++, src++, dst++;
+				pix = ScaleColor(src[0], w0)
+					+ ScaleColor(src[1], w1)
+					+ ScaleColor(src[stride], w2)
+					+ ScaleColor(src[stride + 1], w3);
+				alpha = pix >> 24;
+				*dst = ScaleColor(pix, alpha) + ScaleColor(*dst, 255 - alpha);
+			}
+		}
+	else
+#endif // UNROLLING
+		for (int v = 0; v < frameSizeMinusOne; v++)
+		{
+			uint* dst = dst_start + v * target->width;
+			uint* src = src_start + v * stride;
+			for (int u = 0; u < frameSizeMinusOne; u++, src++, dst++)
+			{
+				uint pix = ScaleColor(src[0], w0)
+					+ ScaleColor(src[1], w1)
+					+ ScaleColor(src[stride], w2)
+					+ ScaleColor(src[stride + 1], w3);
+				uint alpha = pix >> 24;
+				*dst = ScaleColor(pix, alpha) + ScaleColor(*dst, 255 - alpha);
+			}
+		}
+#endif // VECTORIZED
 }
 
 void SpriteInstance::DrawAdditive( Surface* target, float2 pos, int frame )
